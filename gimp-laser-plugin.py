@@ -2,12 +2,13 @@
 
 import sys
 import math
+from array import *
 from gimpfu import *
 
 
-def laser_power(min, max, pixVal, intensity):
-  if pixVal == 0xff: return 0
-  return min + (max - min) * (255 - pixVal) * intensity / 25500
+def laser_power(min, max, pixel, threshold, intensity):
+  if 255 - pixel < threshold: return 0
+  return min + (max - min) * (255 - pixel) * intensity / 25500
 
 
 def distance(x1, y1, x2, y2):
@@ -15,7 +16,7 @@ def distance(x1, y1, x2, y2):
 
 
 def image_to_gcode(timg, drawable, filename, outWidth, pixSize, feedRate,
-                   minPower, maxPower, minRapid, intensity) :
+                   minPower, maxPower, minRapid, threshold, intensity) :
   width = int(outWidth / pixSize)
   height = int(timg.height * width / timg.width)
 
@@ -31,6 +32,8 @@ def image_to_gcode(timg, drawable, filename, outWidth, pixSize, feedRate,
   pdb.gimp_image_convert_grayscale(timg)
 
   drawable = pdb.gimp_image_get_active_drawable(timg)
+  pixels = drawable.get_pixel_rgn(0, 0, width, height)
+  pixels = array("B", pixels[0:width, 0:height])
 
   pdb.gimp_progress_init('Generating GCode...', None)
 
@@ -40,19 +43,20 @@ def image_to_gcode(timg, drawable, filename, outWidth, pixSize, feedRate,
     forward = True
     lastX = lastY = None
 
-    for row in range(drawable.height):
+    for row in range(height):
       y = row
       lastPixel = None
 
-      pdb.gimp_progress_update(float(row) / drawable.height)
+      pdb.gimp_progress_update(float(row) / height)
 
-      for col in range(drawable.width):
-        x = col if forward else (drawable.width - col - 1)
-        pixel = drawable.get_pixel(x, y)[0]
-        end = col == drawable.width - 1
+      for col in range(width):
+        x = col if forward else (width - col - 1)
+        pixel = pixels[width * (height - y - 1) + x]
+        end = col == width - 1
 
         if col and pixel != lastPixel or end:
-          power = laser_power(minPower, maxPower, lastPixel, intensity)
+          power = laser_power(
+            minPower, maxPower, lastPixel, threshold, intensity)
           rapid = lastPixel == 0xff
 
           if not end or not rapid:
@@ -93,6 +97,7 @@ register(
     (PF_INT,    'minPower',  'Mimimum LASER S-value', 0),
     (PF_INT,    'maxPower',  'Maximum LASER S-value', 255),
     (PF_FLOAT,  'minRapid',  'Minimum rapid distance (mm)', 10),
+    (PF_INT,    'threshold', 'Minimum pixel value', 20),
     (PF_SLIDER, 'intensity', 'Laser intensity (%)', 100, [0, 100, 1]),
   ],
   [],
