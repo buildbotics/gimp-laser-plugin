@@ -33,31 +33,30 @@ def image_to_gcode(timg, drawable, filename, outWidth, pixSize, feedRate,
 
   drawable = pdb.gimp_image_get_active_drawable(timg)
   pixels = drawable.get_pixel_rgn(0, 0, width, height)
-  pixels = array("B", pixels[0:width, 0:height])
+  pixels = array('B', pixels[0:width, 0:height])
 
   pdb.gimp_progress_init('Generating GCode...', None)
 
   with open(filename, 'w+') as f:
-    f.write('G21 G90\nM3 F%d\n' % feedRate)
+    f.write('G21G90\nM3F%d\n' % feedRate)
 
     forward = True
     lastX = lastY = None
 
     for row in range(height):
       y = row
-      lastPixel = None
+      lastPower = None
 
       pdb.gimp_progress_update(float(row) / height)
 
       for col in range(width):
         x = col if forward else (width - col - 1)
         pixel = pixels[width * (height - y - 1) + x]
+        power = laser_power(minPower, maxPower, pixel, threshold, intensity)
         end = col == width - 1
 
-        if col and pixel != lastPixel or end:
-          power = laser_power(
-            minPower, maxPower, lastPixel, threshold, intensity)
-          rapid = lastPixel == 0xff
+        if col and power != lastPower or end:
+          rapid = lastPower == 0
 
           if not end or not rapid:
             if rapid and lastX is not None:
@@ -67,14 +66,14 @@ def image_to_gcode(timg, drawable, filename, outWidth, pixSize, feedRate,
             lastX = x
             lastY = y
 
-            f.write('G%d X%0.2f Y%0.2f S%d\n' % (
-              0 if rapid else 1, x * pixSize, y * pixSize, power))
+            f.write('G%dX%0.2fY%0.2fS%d\n' % (
+              0 if rapid else 1, x * pixSize, y * pixSize, lastPower))
 
-        lastPixel = pixel
+        lastPower = power
 
       forward = not forward
 
-    f.write('M5 S0\n')
+    f.write('M5S0\n')
 
     pdb.gimp_image_delete(timg)
     pdb.gimp_progress_end()
