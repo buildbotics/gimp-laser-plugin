@@ -7,3 +7,13 @@ Then select ``File -> Export g-code for laser engraving..``.
 
 For Gimp 2.8, copy ``gimp-laser-plugin.py`` to ``~/.gimp2.8/plug-in/``.
 Then select ``File -> Export g-code for laser engraving..``.
+
+# Windows 10 installation
+For Gimp 2.10, copy 'BUILDBOTICS-laser-plugin-for-gimp2.10.py' to 
+<Your home folder>\Appdata\Roaming\GIMP\2.0\plug-ins.
+Then select ``File -> Export g-code for laser engraving..``.
+  
+For Gimp 2.8, copy 'BUILDBOTICS-laser-plugin-for-gimp2.8.py' to 
+<Your home folder>\Appdata\Roaming\GIMP\2.0\plug-ins.
+Then select ``File -> Export g-code for laser engraving..``.
+ 
