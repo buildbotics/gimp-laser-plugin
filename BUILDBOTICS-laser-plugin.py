@@ -17,7 +17,7 @@ def distance(x1, y1, x2, y2):
   return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
   
 
-def image_to_gcode(timg, drawable, outWidth, pixSize, feedRate,
+def image_to_gcode(timg, drawable, mcode, outWidth, pixSize, feedRate,
                    minPower, maxPower, minRapid, threshold, intensity) :
   
   dlg = gtk.FileChooserDialog("Pick a file", None,
@@ -40,7 +40,7 @@ def image_to_gcode(timg, drawable, outWidth, pixSize, feedRate,
   pdb.gimp_image_flatten(timg)
   pdb.gimp_context_pop()
 
-  pdb.gimp_image_convert_grayscale(timg)
+  if pdb.gimp_image_base_type(timg) != GRAY:	pdb.gimp_image_convert_grayscale(timg)
 
   drawable = pdb.gimp_image_get_active_drawable(timg)
   pixels = drawable.get_pixel_rgn(0, 0, width, height)
@@ -49,7 +49,8 @@ def image_to_gcode(timg, drawable, outWidth, pixSize, feedRate,
   pdb.gimp_progress_init('Generating GCode...', None)
 
   with open(filename, 'w+') as f:
-    f.write('G21G90\nM3F%d\n' % feedRate)
+    if mcode: f.write('G21G90\nM4F%d\n' % feedRate)
+    else: f.write('G21G90\nM3F%d\n' % feedRate)
 
     forward = True
     lastX = lastY = None
@@ -102,6 +103,7 @@ register(
   [
     (PF_IMAGE, "timg",       "Input image", None),
     (PF_DRAWABLE, "drawable", "Input drawable", None),
+    (PF_BOOL,  'mcode',  'Use M4', False),
     (PF_FLOAT,  'outWidth',  'Output image width (mm)', 100),
     (PF_FLOAT,  'pixSize',   'Size of one output pixel (mm)', 0.25),
     (PF_FLOAT,  'feedRate',  'Feed rate in mm/minute', 3000),
